@@ -62,7 +62,7 @@ export const config: Options.Testrunner = {
         // capabilities for local Appium web tests on an Android Emulator
         platformName: 'Android',
         'appium:deviceName': 'emulator-5554',
-        'appium:platformVersion': '14.0',
+        'appium:platformVersion': '16.0',
         'appium:automationName': 'UiAutomator2',
         'appium:appPackage': 'com.wdiodemoapp',
         'appium:appActivity': 'com.wdiodemoapp.MainActivity',
