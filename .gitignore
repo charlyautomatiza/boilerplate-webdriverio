@@ -4,3 +4,4 @@ node_modules/
 allure-results/
 allure-report/
 junit-results/
+.DS_Store

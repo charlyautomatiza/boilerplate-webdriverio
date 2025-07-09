@@ -65,6 +65,22 @@ Este comando ejecutará las pruebas utilizando WebdriverIO y generará un inform
 npm run open-report
 ```
 
+## Integración continua: Ejecución automática en emulador Android (GitHub Actions)
+
+Este proyecto incluye un workflow de GitHub Actions que automatiza la ejecución de las pruebas E2E en un emulador de Android. El workflow realiza lo siguiente:
+
+- Descarga la APK de ejemplo (Guinea Pig App) y la coloca en la carpeta `app/`.
+- Configura los permisos necesarios para el emulador en el runner de CI.
+- Levanta un emulador Android (API 34, Android 14) usando la acción `reactivecircus/android-emulator-runner`.
+- Instala las dependencias del proyecto (Node.js, Appium, WebdriverIO, etc).
+- Ejecuta los tests E2E definidos en el proyecto.
+- Publica los resultados de Allure y JUnit como artefactos del workflow.
+
+**¿Cuándo se ejecuta este workflow?**
+- Automáticamente en cada push o pull request sobre la rama `main`.
+
+Puedes consultar el archivo del workflow en `.github/workflows/android-emulator.yml` para más detalles.
+
 ## Contribuir
 
 ¡Siéntete libre de contribuir a este proyecto! Si encuentras errores o tienes ideas para mejorar el boilerplate, por favor abre un issue o envía una pull request.
