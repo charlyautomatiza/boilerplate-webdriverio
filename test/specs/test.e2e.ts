@@ -1,7 +1,6 @@
 import { expect } from '@wdio/globals';
 import LoginPage from '../pageobjects/login.page.js';
 import AlertPage from '../pageobjects/alert.page.js';
-import GuineaPigPage from '../pageobjects/guineapig.page.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,91 +20,134 @@ describe('My Login application', () => {
 });
 
 // === NEW: DDT JSON ===
-describe('DDT - JSON: Form Submission', () => {
-    interface LoginData { username: string; expectedToast: string }
+describe('DDT - JSON: Login Scenarios', () => {
+    interface LoginData { 
+        username: string; 
+        password: string; 
+        expectedMessage: string;
+    }
     const filePath = path.join(__dirname, '../data/loginData.json');
     const data: LoginData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
     data.forEach((row) => {
-        it(`Submit form con nombre: "${row.username}" → resultado: "${row.expectedToast}"`, async () => {
-            await GuineaPigPage.open();
-            await GuineaPigPage.setName(row.username);
+        it(`Login con usuario: "${row.username}" → mensaje: "${row.expectedMessage}"`, async () => {
+            // Arrange: Navigate to login screen
+            await (await LoginPage.loginBtn).click();
             
-            // Verify the text appears in the result field as you type
+            // Act: Perform login with test data
+            await LoginPage.login(row.username, row.password);
+            
+            // Assert: Verify success message with waitUntil
             await browser.waitUntil(
                 async () => {
-                    const text = await GuineaPigPage.toast.getText();
-                    return text.includes(row.expectedToast);
+                    try {
+                        const message = await AlertPage.messageAlert;
+                        return await message.isDisplayed();
+                    } catch {
+                        return false;
+                    }
                 },
-                { timeout: 5000, timeoutMsg: `Texto "${row.expectedToast}" no apareció en el resultado` }
+                { 
+                    timeout: 5000, 
+                    timeoutMsg: `Mensaje de alerta no apareció para usuario: ${row.username}` 
+                }
             );
 
-            await expect(GuineaPigPage.toast).toHaveText(
-                expect.stringContaining(row.expectedToast),
-                { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
+            await expect(AlertPage.messageAlert).toHaveText(
+                expect.stringContaining(row.expectedMessage),
+                { message: `Mensaje esperado: "${row.expectedMessage}" para usuario: ${row.username}` }
             );
         });
     });
 });
 
-// === NEW: DDT CSV (simplified approach with manual parsing) ===
-describe('DDT - CSV: Switch Toggle States', () => {
-    interface SwitchData { switchAction: string; expectedState: string }
+// === NEW: DDT CSV ===
+describe('DDT - CSV: Multiple User Login', () => {
+    interface UserData { 
+        username: string; 
+        password: string; 
+        expectedAction: string;
+    }
     
     // Load and parse CSV synchronously at describe time
     const filePath = path.join(__dirname, '../data/buttonsData.csv');
     const csvContent = fs.readFileSync(filePath, 'utf-8');
     const lines = csvContent.trim().split('\n');
     
-    const switchData: SwitchData[] = lines.slice(1).map(line => {
+    const userData: UserData[] = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.replace(/"/g, '').trim());
         return {
-            switchAction: values[0],
-            expectedState: values[1]
+            username: values[0],
+            password: values[1],
+            expectedAction: values[2]
         };
     });
 
-    switchData.forEach((row: SwitchData) => {
-        it(`Switch action "${row.switchAction}" → estado esperado: ${row.expectedState}`, async () => {
-            // Arrange
-            await GuineaPigPage.open();
+    userData.forEach((row: UserData) => {
+        it(`CSV Test - Usuario: "${row.username}" → acción esperada: ${row.expectedAction}`, async () => {
+            // Arrange: Navigate to login screen
+            await (await LoginPage.loginBtn).click();
             
-            // Get current state and toggle if needed
-            const currentState = await GuineaPigPage.isSwitchActive();
-            const expectedState = row.expectedState === 'true';
-            
-            // Act - only click if we need to change state
-            if (currentState !== expectedState) {
-                await GuineaPigPage.clickSwitch();
-            }
+            // Act: Perform login
+            await LoginPage.login(row.username, row.password);
 
-            // Assert
+            // Assert: Verify login was successful
             await browser.waitUntil(
                 async () => {
-                    const state = await GuineaPigPage.isSwitchActive();
-                    return state === expectedState;
+                    try {
+                        const message = await AlertPage.messageAlert;
+                        return await message.isDisplayed();
+                    } catch {
+                        return false;
+                    }
                 },
-                { timeout: 5000, timeoutMsg: `Switch no cambió al estado esperado: ${expectedState}` }
+                { 
+                    timeout: 10000, 
+                    timeoutMsg: `Login no fue exitoso para usuario: ${row.username}` 
+                }
             );
             
-            const finalState = await GuineaPigPage.isSwitchActive();
-            expect(finalState).toBe(expectedState);
+            const alertMessage = await AlertPage.messageAlert;
+            const messageText = await alertMessage.getText();
+            expect(messageText).toContain('You are logged in');
         });
     });
 });
 
 // === NEW: Patrón AAA ===
-describe('Patrón AAA: Switch Toggle', () => {
-    it('debe cambiar estado del switch al hacer click', async () => {
-        // Arrange
-        await GuineaPigPage.open();
-        const initialState = await GuineaPigPage.isSwitchActive();
+describe('Patrón AAA: Login Flow', () => {
+    it('debe realizar login correctamente siguiendo el patrón AAA', async () => {
+        // Arrange: Preparar el escenario - navegar a la pantalla de login
+        await (await LoginPage.loginBtn).click();
+        
+        // Verificar que los elementos están presentes antes de actuar
+        await expect(LoginPage.inputUsername).toBeDisplayed();
+        await expect(LoginPage.inputPassword).toBeDisplayed();
+        await expect(LoginPage.btnSubmit).toBeDisplayed();
 
-        // Act
-        await GuineaPigPage.clickSwitch();
+        // Act: Ejecutar la acción - realizar el login
+        await LoginPage.login('tomsmith@mail.com', 'SuperSecretPassword!');
 
-        // Assert
-        const finalState = await GuineaPigPage.isSwitchActive();
-        expect(finalState).toBe(!initialState);
+        // Assert: Verificar el resultado esperado
+        await browser.waitUntil(
+            async () => {
+                try {
+                    const message = await AlertPage.messageAlert;
+                    return await message.isDisplayed();
+                } catch {
+                    return false;
+                }
+            },
+            { 
+                timeout: 5000, 
+                timeoutMsg: 'Mensaje de confirmación no apareció tras el login' 
+            }
+        );
+        
+        await expect(AlertPage.messageAlert).toHaveText(
+            expect.stringContaining('You are logged in!'),
+            { message: 'El mensaje de confirmación no es el esperado' }
+        );
     });
 });
+

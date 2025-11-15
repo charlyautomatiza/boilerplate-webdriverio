@@ -83,7 +83,7 @@ Puedes consultar el archivo del workflow en `.github/workflows/android-emulator.
 
 ## Ejemplos Avanzados en test.e2e.ts
 
-Este proyecto incluye ejemplos avanzados de testing que demuestran buenas prácticas y patrones de diseño comunes en automatización de pruebas:
+Este proyecto incluye ejemplos avanzados de testing que demuestran buenas prácticas y patrones de diseño comunes en automatización de pruebas, utilizando los Page Objects existentes (`LoginPage` y `AlertPage`):
 
 ### 1. Data-Driven Testing (DDT) con JSON
 
@@ -94,21 +94,32 @@ El archivo `test/specs/test.e2e.ts` incluye ejemplos de pruebas parametrizadas u
 const data: LoginData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
 data.forEach((row) => {
-    it(`Submit form con nombre: "${row.username}" → resultado: "${row.expectedToast}"`, async () => {
-        await GuineaPigPage.open();
-        await GuineaPigPage.setName(row.username);
+    it(`Login con usuario: "${row.username}" → mensaje: "${row.expectedMessage}"`, async () => {
+        // Arrange: Navigate to login screen
+        await (await LoginPage.loginBtn).click();
         
+        // Act: Perform login with test data
+        await LoginPage.login(row.username, row.password);
+        
+        // Assert: Verify success message with waitUntil
         await browser.waitUntil(
             async () => {
-                const text = await GuineaPigPage.toast.getText();
-                return text.includes(row.expectedToast);
+                try {
+                    const message = await AlertPage.messageAlert;
+                    return await message.isDisplayed();
+                } catch {
+                    return false;
+                }
             },
-            { timeout: 5000, timeoutMsg: `Texto "${row.expectedToast}" no apareció en el resultado` }
+            { 
+                timeout: 5000, 
+                timeoutMsg: `Mensaje de alerta no apareció para usuario: ${row.username}` 
+            }
         );
 
-        await expect(GuineaPigPage.toast).toHaveText(
-            expect.stringContaining(row.expectedToast),
-            { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
+        await expect(AlertPage.messageAlert).toHaveText(
+            expect.stringContaining(row.expectedMessage),
+            { message: `Mensaje esperado: "${row.expectedMessage}" para usuario: ${row.username}` }
         );
     });
 });
@@ -117,9 +128,9 @@ data.forEach((row) => {
 **Archivo de datos:** `test/data/loginData.json`
 ```json
 [
-  { "username": "Juan", "expectedToast": "Juan" },
-  { "username": "Ana", "expectedToast": "Ana" },
-  { "username": "Test User", "expectedToast": "Test User" }
+  { "username": "tomsmith@mail.com", "password": "SuperSecretPassword!", "expectedMessage": "You are logged in!" },
+  { "username": "user@test.com", "password": "TestPass123!", "expectedMessage": "You are logged in!" },
+  { "username": "admin@example.com", "password": "Admin2024!", "expectedMessage": "You are logged in!" }
 ]
 ```
 
@@ -132,26 +143,47 @@ También se incluyen ejemplos de pruebas usando datos en formato CSV:
 const csvContent = fs.readFileSync(filePath, 'utf-8');
 const lines = csvContent.trim().split('\n');
 
-const switchData: SwitchData[] = lines.slice(1).map(line => {
+const userData: UserData[] = lines.slice(1).map(line => {
     const values = line.split(',').map(v => v.replace(/"/g, '').trim());
     return {
-        switchAction: values[0],
-        expectedState: values[1]
+        username: values[0],
+        password: values[1],
+        expectedAction: values[2]
     };
 });
 
-switchData.forEach((row: SwitchData) => {
-    it(`Switch action "${row.switchAction}" → estado esperado: ${row.expectedState}`, async () => {
-        // Test implementation...
+userData.forEach((row: UserData) => {
+    it(`CSV Test - Usuario: "${row.username}" → acción esperada: ${row.expectedAction}`, async () => {
+        // Arrange: Navigate to login screen
+        await (await LoginPage.loginBtn).click();
+        
+        // Act: Perform login
+        await LoginPage.login(row.username, row.password);
+
+        // Assert: Verify login was successful
+        await browser.waitUntil(
+            async () => {
+                try {
+                    const message = await AlertPage.messageAlert;
+                    return await message.isDisplayed();
+                } catch {
+                    return false;
+                }
+            },
+            { 
+                timeout: 10000, 
+                timeoutMsg: `Login no fue exitoso para usuario: ${row.username}` 
+            }
+        );
     });
 });
 ```
 
 **Archivo de datos:** `test/data/buttonsData.csv`
 ```csv
-switchAction,expectedState
-on,true
-off,false
+username,password,expectedAction
+user1@test.com,Pass123!,login_success
+user2@test.com,Pass456!,login_success
 ```
 
 ### 3. Patrón AAA (Arrange-Act-Assert)
@@ -159,17 +191,38 @@ off,false
 El patrón AAA organiza los tests en tres fases claramente diferenciadas:
 
 ```typescript
-it('debe cambiar estado del switch al hacer click', async () => {
+it('debe realizar login correctamente siguiendo el patrón AAA', async () => {
     // Arrange - Preparar el escenario de prueba
-    await GuineaPigPage.open();
-    const initialState = await GuineaPigPage.isSwitchActive();
+    await (await LoginPage.loginBtn).click();
+    
+    // Verificar que los elementos están presentes antes de actuar
+    await expect(LoginPage.inputUsername).toBeDisplayed();
+    await expect(LoginPage.inputPassword).toBeDisplayed();
+    await expect(LoginPage.btnSubmit).toBeDisplayed();
 
     // Act - Ejecutar la acción a probar
-    await GuineaPigPage.clickSwitch();
+    await LoginPage.login('tomsmith@mail.com', 'SuperSecretPassword!');
 
     // Assert - Verificar el resultado esperado
-    const finalState = await GuineaPigPage.isSwitchActive();
-    expect(finalState).toBe(!initialState);
+    await browser.waitUntil(
+        async () => {
+            try {
+                const message = await AlertPage.messageAlert;
+                return await message.isDisplayed();
+            } catch {
+                return false;
+            }
+        },
+        { 
+            timeout: 5000, 
+            timeoutMsg: 'Mensaje de confirmación no apareció tras el login' 
+        }
+    );
+    
+    await expect(AlertPage.messageAlert).toHaveText(
+        expect.stringContaining('You are logged in!'),
+        { message: 'El mensaje de confirmación no es el esperado' }
+    );
 });
 ```
 
@@ -179,39 +232,50 @@ it('debe cambiar estado del switch al hacer click', async () => {
 ```typescript
 await browser.waitUntil(
     async () => {
-        const state = await GuineaPigPage.isSwitchActive();
-        return state === expectedState;
+        try {
+            const message = await AlertPage.messageAlert;
+            return await message.isDisplayed();
+        } catch {
+            return false;
+        }
     },
-    { timeout: 5000, timeoutMsg: `Switch no cambió al estado esperado: ${expectedState}` }
+    { 
+        timeout: 5000, 
+        timeoutMsg: 'Mensaje de confirmación no apareció tras el login' 
+    }
 );
 ```
 
 #### Mensajes claros en las aserciones
 ```typescript
-await expect(GuineaPigPage.toast).toHaveText(
-    expect.stringContaining(row.expectedToast),
-    { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
+await expect(AlertPage.messageAlert).toHaveText(
+    expect.stringContaining(row.expectedMessage),
+    { message: `Mensaje esperado: "${row.expectedMessage}" para usuario: ${row.username}` }
 );
 ```
 
 #### Page Object Model (POM)
-Todas las interacciones con la aplicación se realizan a través del Page Object `GuineaPigPage`, que encapsula los selectores y las acciones:
+Todas las interacciones con la aplicación se realizan a través de los Page Objects existentes `LoginPage` y `AlertPage`:
 
 ```typescript
-// test/pageobjects/guineapig.page.ts
-class GuineaPigPage {
-    public get nameInput() {
-        return $('~text-input');
+// test/pageobjects/login.page.ts
+class LoginPage {
+    public get loginBtn () {
+        return $('~Login');
     }
 
-    public async setName(name: string) {
-        await this.nameInput.setValue(name);
+    public get inputUsername () {
+        return $('~input-email');
     }
 
-    public async open() {
-        const formsTab = await $('~Forms');
-        await formsTab.click();
-        await browser.pause(500);
+    public get inputPassword () {
+        return $('~input-password');
+    }
+
+    public async login (username: string, password: string) {
+        await this.inputUsername.setValue(username);
+        await this.inputPassword.setValue(password);
+        await this.btnSubmit.click();
     }
 }
 ```
@@ -224,9 +288,8 @@ test/
 │   ├── loginData.json       # Datos para DDT con JSON
 │   └── buttonsData.csv      # Datos para DDT con CSV
 ├── pageobjects/
-│   ├── guineapig.page.ts    # Page Object de Guinea Pig Forms
-│   ├── login.page.ts        # Page Object de Login
-│   └── alert.page.ts        # Page Object de Alert
+│   ├── login.page.ts        # Page Object de Login (existente)
+│   └── alert.page.ts        # Page Object de Alert (existente)
 └── specs/
     └── test.e2e.ts          # Tests E2E con ejemplos avanzados
 ```
@@ -234,9 +297,9 @@ test/
 ### Ejecución y Reportes
 
 Los tests generan reportes en formato Allure y JUnit que muestran:
-- **3 casos de prueba** del DDT con JSON (uno por cada conjunto de datos)
-- **2 casos de prueba** del DDT con CSV (uno por cada estado del switch)
-- **1 caso de prueba** con patrón AAA
+- **3 casos de prueba** del DDT con JSON (login con diferentes usuarios)
+- **2 casos de prueba** del DDT con CSV (login con datos desde CSV)
+- **1 caso de prueba** con patrón AAA (login flow completo)
 - **1 caso de prueba** original de login
 
 Los reportes incluyen títulos dinámicos que facilitan la identificación de cada caso de prueba y sus datos asociados.

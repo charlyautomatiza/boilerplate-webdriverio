@@ -1,3 +1,3 @@
-switchAction,expectedState
-on,true
-off,false
+username,password,expectedAction
+user1@test.com,Pass123!,login_success
+user2@test.com,Pass456!,login_success
