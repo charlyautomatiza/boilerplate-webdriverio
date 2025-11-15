@@ -1,25 +1,25 @@
 /**
  * Guinea Pig Page Object
- * Page object for the WebdriverIO Guinea Pig demo app
+ * Page object for the WebdriverIO Guinea Pig demo app Forms screen
  */
 class GuineaPigPage {
     /**
-     * Selectors for Guinea Pig app elements
+     * Selectors for Guinea Pig app elements (Forms screen)
      */
     public get nameInput() {
+        return $('~text-input');
+    }
+
+    public get inputTextResult() {
         return $('~input-text-result');
     }
 
-    public get submitButton() {
-        return $('~button-submit');
+    public get activeButton() {
+        return $('~button-Active');
     }
 
-    public get toast() {
-        return $('~toast-text');
-    }
-
-    public get checkbox() {
-        return $('~checkbox');
+    public get switchElement() {
+        return $('~switch');
     }
 
     /**
@@ -30,25 +30,36 @@ class GuineaPigPage {
     }
 
     public async clickSubmit() {
-        await this.submitButton.click();
+        await this.activeButton.click();
     }
 
-    public async getToastText() {
-        return await this.toast.getText();
+    public async getInputTextResult() {
+        return await this.inputTextResult.getText();
     }
 
-    public async clickCheckbox() {
-        await this.checkbox.click();
+    public async clickSwitch() {
+        await this.switchElement.click();
     }
 
-    public async isCheckboxChecked() {
-        return await this.checkbox.isSelected();
+    public async isSwitchActive(): Promise<boolean> {
+        return (await this.switchElement.getAttribute('checked')) === 'true';
     }
 
     public async open() {
-        // The app should already be open via the capability in wdio.conf.ts
-        // This method can be used to navigate to specific screens if needed
-        await browser.pause(1000); // Small pause to ensure app is ready
+        // Navigate to Forms screen by clicking the Forms tab
+        const formsTab = await $('~Forms');
+        await formsTab.click();
+        // Small pause to ensure screen is ready
+        await browser.pause(500);
+    }
+
+    // Aliases for compatibility with test code
+    public get toast() {
+        return this.inputTextResult;
+    }
+
+    public get checkbox() {
+        return this.switchElement;
     }
 }
 

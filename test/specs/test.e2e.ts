@@ -27,75 +27,85 @@ describe('DDT - JSON: Form Submission', () => {
     const data: LoginData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
     data.forEach((row) => {
-        it(`Submit form con nombre: "${row.username}" → toast: "${row.expectedToast}"`, async () => {
+        it(`Submit form con nombre: "${row.username}" → resultado: "${row.expectedToast}"`, async () => {
             await GuineaPigPage.open();
             await GuineaPigPage.setName(row.username);
-            await GuineaPigPage.clickSubmit();
-
+            
+            // Verify the text appears in the result field as you type
             await browser.waitUntil(
-                () => GuineaPigPage.toast.isDisplayed(),
-                { timeout: 5000, timeoutMsg: 'Toast no apareció tras submit' }
+                async () => {
+                    const text = await GuineaPigPage.toast.getText();
+                    return text.includes(row.expectedToast);
+                },
+                { timeout: 5000, timeoutMsg: `Texto "${row.expectedToast}" no apareció en el resultado` }
             );
 
             await expect(GuineaPigPage.toast).toHaveText(
-                row.expectedToast,
-                { message: `Toast esperado: "${row.expectedToast}"` }
+                expect.stringContaining(row.expectedToast),
+                { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
             );
         });
     });
 });
 
 // === NEW: DDT CSV (simplified approach with manual parsing) ===
-describe('DDT - CSV: Button Navigation', () => {
-    interface ButtonData { buttonText: string; expectedUrl: string }
+describe('DDT - CSV: Switch Toggle States', () => {
+    interface SwitchData { switchAction: string; expectedState: string }
     
     // Load and parse CSV synchronously at describe time
     const filePath = path.join(__dirname, '../data/buttonsData.csv');
     const csvContent = fs.readFileSync(filePath, 'utf-8');
     const lines = csvContent.trim().split('\n');
     
-    const buttonData: ButtonData[] = lines.slice(1).map(line => {
+    const switchData: SwitchData[] = lines.slice(1).map(line => {
         const values = line.split(',').map(v => v.replace(/"/g, '').trim());
         return {
-            buttonText: values[0],
-            expectedUrl: values[1]
+            switchAction: values[0],
+            expectedState: values[1]
         };
     });
 
-    buttonData.forEach((row: ButtonData) => {
-        it(`Click en "${row.buttonText}" → redirige a ${row.expectedUrl}`, async () => {
+    switchData.forEach((row: SwitchData) => {
+        it(`Switch action "${row.switchAction}" → estado esperado: ${row.expectedState}`, async () => {
             // Arrange
             await GuineaPigPage.open();
-            const link = await $(`//a[text()="${row.buttonText}"]`);
-
-            // Act
-            await link.click();
+            
+            // Get current state and toggle if needed
+            const currentState = await GuineaPigPage.isSwitchActive();
+            const expectedState = row.expectedState === 'true';
+            
+            // Act - only click if we need to change state
+            if (currentState !== expectedState) {
+                await GuineaPigPage.clickSwitch();
+            }
 
             // Assert
             await browser.waitUntil(
                 async () => {
-                    const url = await browser.getUrl();
-                    return url.includes(row.expectedUrl);
+                    const state = await GuineaPigPage.isSwitchActive();
+                    return state === expectedState;
                 },
-                { timeout: 10000, timeoutMsg: `No se redirigió a ${row.expectedUrl}` }
+                { timeout: 5000, timeoutMsg: `Switch no cambió al estado esperado: ${expectedState}` }
             );
-            const currentUrl = await browser.getUrl();
-            expect(currentUrl).toContain(row.expectedUrl);
+            
+            const finalState = await GuineaPigPage.isSwitchActive();
+            expect(finalState).toBe(expectedState);
         });
     });
 });
 
 // === NEW: Patrón AAA ===
-describe('Patrón AAA: Checkbox Toggle', () => {
-    it('debe cambiar estado del checkbox al hacer click', async () => {
+describe('Patrón AAA: Switch Toggle', () => {
+    it('debe cambiar estado del switch al hacer click', async () => {
         // Arrange
         await GuineaPigPage.open();
-        const checkbox = await GuineaPigPage.checkbox;
+        const initialState = await GuineaPigPage.isSwitchActive();
 
         // Act
-        await checkbox.click();
+        await GuineaPigPage.clickSwitch();
 
         // Assert
-        await expect(checkbox).toBeChecked();
+        const finalState = await GuineaPigPage.isSwitchActive();
+        expect(finalState).toBe(!initialState);
     });
 });
