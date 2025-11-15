@@ -1,0 +1,5 @@
+[
+  { "username": "Juan", "expectedToast": "Your name is: Juan" },
+  { "username": "Ana", "expectedToast": "Your name is: Ana" },
+  { "username": "", "expectedToast": "Your name is: " }
+]
