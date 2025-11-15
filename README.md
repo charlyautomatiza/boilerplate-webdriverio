@@ -81,6 +81,166 @@ Este proyecto incluye un workflow de GitHub Actions que automatiza la ejecución
 
 Puedes consultar el archivo del workflow en `.github/workflows/android-emulator.yml` para más detalles.
 
+## Ejemplos Avanzados en test.e2e.ts
+
+Este proyecto incluye ejemplos avanzados de testing que demuestran buenas prácticas y patrones de diseño comunes en automatización de pruebas:
+
+### 1. Data-Driven Testing (DDT) con JSON
+
+El archivo `test/specs/test.e2e.ts` incluye ejemplos de pruebas parametrizadas usando datos en formato JSON:
+
+```typescript
+// Cargar datos desde test/data/loginData.json
+const data: LoginData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+data.forEach((row) => {
+    it(`Submit form con nombre: "${row.username}" → resultado: "${row.expectedToast}"`, async () => {
+        await GuineaPigPage.open();
+        await GuineaPigPage.setName(row.username);
+        
+        await browser.waitUntil(
+            async () => {
+                const text = await GuineaPigPage.toast.getText();
+                return text.includes(row.expectedToast);
+            },
+            { timeout: 5000, timeoutMsg: `Texto "${row.expectedToast}" no apareció en el resultado` }
+        );
+
+        await expect(GuineaPigPage.toast).toHaveText(
+            expect.stringContaining(row.expectedToast),
+            { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
+        );
+    });
+});
+```
+
+**Archivo de datos:** `test/data/loginData.json`
+```json
+[
+  { "username": "Juan", "expectedToast": "Juan" },
+  { "username": "Ana", "expectedToast": "Ana" },
+  { "username": "Test User", "expectedToast": "Test User" }
+]
+```
+
+### 2. Data-Driven Testing (DDT) con CSV
+
+También se incluyen ejemplos de pruebas usando datos en formato CSV:
+
+```typescript
+// Cargar y parsear CSV en tiempo de ejecución
+const csvContent = fs.readFileSync(filePath, 'utf-8');
+const lines = csvContent.trim().split('\n');
+
+const switchData: SwitchData[] = lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+    return {
+        switchAction: values[0],
+        expectedState: values[1]
+    };
+});
+
+switchData.forEach((row: SwitchData) => {
+    it(`Switch action "${row.switchAction}" → estado esperado: ${row.expectedState}`, async () => {
+        // Test implementation...
+    });
+});
+```
+
+**Archivo de datos:** `test/data/buttonsData.csv`
+```csv
+switchAction,expectedState
+on,true
+off,false
+```
+
+### 3. Patrón AAA (Arrange-Act-Assert)
+
+El patrón AAA organiza los tests en tres fases claramente diferenciadas:
+
+```typescript
+it('debe cambiar estado del switch al hacer click', async () => {
+    // Arrange - Preparar el escenario de prueba
+    await GuineaPigPage.open();
+    const initialState = await GuineaPigPage.isSwitchActive();
+
+    // Act - Ejecutar la acción a probar
+    await GuineaPigPage.clickSwitch();
+
+    // Assert - Verificar el resultado esperado
+    const finalState = await GuineaPigPage.isSwitchActive();
+    expect(finalState).toBe(!initialState);
+});
+```
+
+### 4. Buenas Prácticas Implementadas
+
+#### Uso de waitUntil con mensajes descriptivos
+```typescript
+await browser.waitUntil(
+    async () => {
+        const state = await GuineaPigPage.isSwitchActive();
+        return state === expectedState;
+    },
+    { timeout: 5000, timeoutMsg: `Switch no cambió al estado esperado: ${expectedState}` }
+);
+```
+
+#### Mensajes claros en las aserciones
+```typescript
+await expect(GuineaPigPage.toast).toHaveText(
+    expect.stringContaining(row.expectedToast),
+    { message: `Resultado esperado debe contener: "${row.expectedToast}"` }
+);
+```
+
+#### Page Object Model (POM)
+Todas las interacciones con la aplicación se realizan a través del Page Object `GuineaPigPage`, que encapsula los selectores y las acciones:
+
+```typescript
+// test/pageobjects/guineapig.page.ts
+class GuineaPigPage {
+    public get nameInput() {
+        return $('~text-input');
+    }
+
+    public async setName(name: string) {
+        await this.nameInput.setValue(name);
+    }
+
+    public async open() {
+        const formsTab = await $('~Forms');
+        await formsTab.click();
+        await browser.pause(500);
+    }
+}
+```
+
+### Estructura de Archivos
+
+```
+test/
+├── data/
+│   ├── loginData.json       # Datos para DDT con JSON
+│   └── buttonsData.csv      # Datos para DDT con CSV
+├── pageobjects/
+│   ├── guineapig.page.ts    # Page Object de Guinea Pig Forms
+│   ├── login.page.ts        # Page Object de Login
+│   └── alert.page.ts        # Page Object de Alert
+└── specs/
+    └── test.e2e.ts          # Tests E2E con ejemplos avanzados
+```
+
+### Ejecución y Reportes
+
+Los tests generan reportes en formato Allure y JUnit que muestran:
+- **3 casos de prueba** del DDT con JSON (uno por cada conjunto de datos)
+- **2 casos de prueba** del DDT con CSV (uno por cada estado del switch)
+- **1 caso de prueba** con patrón AAA
+- **1 caso de prueba** original de login
+
+Los reportes incluyen títulos dinámicos que facilitan la identificación de cada caso de prueba y sus datos asociados.
+
 ## Contribuir
 
 ¡Siéntete libre de contribuir a este proyecto! Si encuentras errores o tienes ideas para mejorar el boilerplate, por favor abre un issue o envía una pull request.
