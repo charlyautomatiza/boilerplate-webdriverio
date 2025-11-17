@@ -1,5 +1,5 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import type { Options } from '@wdio/types';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -256,9 +256,11 @@ export const config: Options.Testrunner = {
      * @param {object}  result.retries   information about spec related retries, e.g. `{ attempts: 0, limit: 0 }`
      */
     afterTest: async function(test, context, { error, result, duration, passed, retries }) {
+        // On failure, capture a screenshot for reporting
         if (!passed) {
             await browser.takeScreenshot();
         }
+        await browser.relaunchActiveApp()
     },
 
 

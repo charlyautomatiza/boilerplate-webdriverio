@@ -1,81 +1,72 @@
 import { expect } from '@wdio/globals';
-import LoginPage from '../pageobjects/login.page.js';
-import AlertPage from '../pageobjects/alert.page.js';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import LoginPage from '../pageobjects/login.page';
+import AlertPage from '../pageobjects/alert.page';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+import { LoginData, UserData } from '../types/data';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// === EXISTING: Original Login Test (DO NOT MODIFY) ===
-describe('My Login application', () => {
+describe('Login Scenarios', () => {
     it('should login with valid credentials', async () => {
-        await (await LoginPage.loginBtn).click();
+        await LoginPage.loginBtn.click();
         await LoginPage.login('tomsmith@mail.com', 'SuperSecretPassword!');
-        await expect(AlertPage.messageAlert).toHaveText(expect.stringContaining(
-            'You are logged in!'));
+        await expect(AlertPage.messageAlert).toHaveText(expect.stringContaining('You are logged in!'));
     });
-});
 
-// === NEW: DDT JSON ===
-describe('DDT - JSON: Login Scenarios', () => {
-    interface LoginData { 
-        username: string; 
-        password: string; 
-        expectedMessage: string;
-    }
-    const filePath = path.join(__dirname, '../data/loginData.json');
-    const data: LoginData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    // === AAA Pattern Example ===
+    it('should login successfully following the AAA pattern', async () => {
+        // Arrange: Navigate to the login screen
+        await LoginPage.loginBtn.click();
 
-    data.forEach((row) => {
-        it(`Login con usuario: "${row.username}" → mensaje: "${row.expectedMessage}"`, async () => {
-            // Arrange: Navigate to login screen
-            await (await LoginPage.loginBtn).click();
-            
-            // Act: Perform login with test data
+        // Assert (pre-conditions): Ensure elements are present before acting
+        await expect(LoginPage.inputUsername).toBeDisplayed();
+        await expect(LoginPage.inputPassword).toBeDisplayed();
+        await expect(LoginPage.btnSubmit).toBeDisplayed();
+
+        // Act: Perform the login action
+        await LoginPage.login('tomsmith@mail.com', 'SuperSecretPassword!');
+
+        // Assert: Verify the expected result using implicit waits (no hard-coded timeouts)
+        await expect(AlertPage.messageAlert).toHaveText(
+            expect.stringContaining('You are logged in!'),
+            { message: 'Confirmation message is not the expected one' }
+        );
+    });
+
+    // === DDT JSON ===
+    const jsonDataPath = path.join(__dirname, '../data/loginData.json');
+    const data: LoginData[] = JSON.parse(fs.readFileSync(jsonDataPath, 'utf-8'));
+
+    if (!data.length) throw new Error('loginData.json is empty');
+    for (const row of data) {
+        it(`DDT JSON - User: "${row.username}" → message: "${row.expectedMessage}"`, async () => {
+            // Arrange: Navigate to the login screen
+            await LoginPage.loginBtn.click();
+
+            // Act: Perform login with data row
             await LoginPage.login(row.username, row.password);
-            
-            // Assert: Verify success message with waitUntil
-            await browser.waitUntil(
-                async () => {
-                    try {
-                        const message = await AlertPage.messageAlert;
-                        return await message.isDisplayed();
-                    } catch {
-                        return false;
-                    }
-                },
-                { 
-                    timeout: 5000, 
-                    timeoutMsg: `Mensaje de alerta no apareció para usuario: ${row.username}` 
-                }
-            );
 
+            // Assert: Validate the message matches the expectation for this data row
             await expect(AlertPage.messageAlert).toHaveText(
                 expect.stringContaining(row.expectedMessage),
-                { message: `Mensaje esperado: "${row.expectedMessage}" para usuario: ${row.username}` }
+                { message: `Expected message: "${row.expectedMessage}" for user: ${row.username}` }
             );
         });
-    });
-});
-
-// === NEW: DDT CSV ===
-describe('DDT - CSV: Multiple User Login', () => {
-    interface UserData { 
-        username: string; 
-        password: string; 
-        expectedAction: string;
     }
-    
+
+    // === DDT CSV ===
+
     // Load and parse CSV synchronously at describe time
-    const filePath = path.join(__dirname, '../data/buttonsData.csv');
-    const csvContent = fs.readFileSync(filePath, 'utf-8');
+    const csvDataPath = path.join(__dirname, '../data/buttonsData.csv');
+    const csvContent = fs.readFileSync(csvDataPath, 'utf-8');
     const lines = csvContent.trim().split('\n');
-    
+
     const userData: UserData[] = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+        const values = line.split(',').map(v => v.replaceAll('"', '').trim());
         return {
             username: values[0],
             password: values[1],
@@ -83,71 +74,20 @@ describe('DDT - CSV: Multiple User Login', () => {
         };
     });
 
-    userData.forEach((row: UserData) => {
-        it(`CSV Test - Usuario: "${row.username}" → acción esperada: ${row.expectedAction}`, async () => {
-            // Arrange: Navigate to login screen
-            await (await LoginPage.loginBtn).click();
-            
-            // Act: Perform login
+    if (!userData.length) throw new Error('buttonsData.csv is empty');
+    for (const row of userData) {
+        it(`DDT CSV - User: "${row.username}" → expected action: ${row.expectedAction}` , async () => {
+            // Arrange: Navigate to the login screen
+            await LoginPage.loginBtn.click();
+
+            // Act: Perform login with CSV data row
             await LoginPage.login(row.username, row.password);
 
-            // Assert: Verify login was successful
-            await browser.waitUntil(
-                async () => {
-                    try {
-                        const message = await AlertPage.messageAlert;
-                        return await message.isDisplayed();
-                    } catch {
-                        return false;
-                    }
-                },
-                { 
-                    timeout: 10000, 
-                    timeoutMsg: `Login no fue exitoso para usuario: ${row.username}` 
-                }
+            // Assert: Verify the alert contains the expected action string (demonstration value)
+            await expect(AlertPage.messageAlert).toHaveText(
+                expect.stringContaining(`${row.expectedAction}`)
             );
-            
-            const alertMessage = await AlertPage.messageAlert;
-            const messageText = await alertMessage.getText();
-            expect(messageText).toContain('You are logged in');
         });
-    });
-});
-
-// === NEW: Patrón AAA ===
-describe('Patrón AAA: Login Flow', () => {
-    it('debe realizar login correctamente siguiendo el patrón AAA', async () => {
-        // Arrange: Preparar el escenario - navegar a la pantalla de login
-        await (await LoginPage.loginBtn).click();
-        
-        // Verificar que los elementos están presentes antes de actuar
-        await expect(LoginPage.inputUsername).toBeDisplayed();
-        await expect(LoginPage.inputPassword).toBeDisplayed();
-        await expect(LoginPage.btnSubmit).toBeDisplayed();
-
-        // Act: Ejecutar la acción - realizar el login
-        await LoginPage.login('tomsmith@mail.com', 'SuperSecretPassword!');
-
-        // Assert: Verificar el resultado esperado
-        await browser.waitUntil(
-            async () => {
-                try {
-                    const message = await AlertPage.messageAlert;
-                    return await message.isDisplayed();
-                } catch {
-                    return false;
-                }
-            },
-            { 
-                timeout: 5000, 
-                timeoutMsg: 'Mensaje de confirmación no apareció tras el login' 
-            }
-        );
-        
-        await expect(AlertPage.messageAlert).toHaveText(
-            expect.stringContaining('You are logged in!'),
-            { message: 'El mensaje de confirmación no es el esperado' }
-        );
-    });
+    }
 });
 
