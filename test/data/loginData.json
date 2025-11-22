@@ -1,0 +1,5 @@
+[
+  { "username": "tomsmith@mail.com", "password": "SuperSecretPassword!", "expectedMessage": "You are logged in!" },
+  { "username": "user@test.com", "password": "TestPass123!", "expectedMessage": "You are logged in!" },
+  { "username": "admin@example.com", "password": "Admin2024!", "expectedMessage": "You are logged in!" }
+]

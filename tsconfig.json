@@ -2,9 +2,9 @@
     "compilerOptions": {
         "moduleResolution": "node",
         "module": "ESNext",
-        "target": "es2022",
+        "target": "ES2024",
         "lib": [
-            "es2022",
+            "ES2024",
             "dom"
         ],
         "types": [
@@ -22,7 +22,8 @@
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "test",

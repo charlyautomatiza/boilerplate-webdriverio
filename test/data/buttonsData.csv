@@ -1,0 +1,3 @@
+username,password,expectedAction
+user1@test.com,Pass123!,You are logged in!
+user2@test.com,Pass456!,You are logged in!
