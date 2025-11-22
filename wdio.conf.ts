@@ -260,7 +260,7 @@ export const config: Options.Testrunner = {
         if (!passed) {
             await browser.takeScreenshot();
         }
-        await browser.relaunchActiveApp()
+        await browser.relaunchActiveApp();
     },
 
 

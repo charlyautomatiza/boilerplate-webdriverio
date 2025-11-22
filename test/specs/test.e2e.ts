@@ -76,7 +76,7 @@ describe('Login Scenarios', () => {
 
     if (!userData.length) throw new Error('buttonsData.csv is empty');
     for (const row of userData) {
-        it(`DDT CSV - User: "${row.username}" → expected action: ${row.expectedAction}` , async () => {
+        it(`DDT CSV - User: "${row.username}" → expected action: ${row.expectedAction}`, async () => {
             // Arrange: Navigate to the login screen
             await LoginPage.loginBtn.click();
 
@@ -85,7 +85,7 @@ describe('Login Scenarios', () => {
 
             // Assert: Verify the alert contains the expected action string (demonstration value)
             await expect(AlertPage.messageAlert).toHaveText(
-                expect.stringContaining(`${row.expectedAction}`)
+                expect.stringContaining(row.expectedAction)
             );
         });
     }
