@@ -17,7 +17,7 @@ Specialist in authoring new test scenarios following the Page Object Model and d
 - Wire up new specs to the existing `wdio.conf.ts` glob (`./test/specs/**/*.ts`) — no config changes required.
 
 ### Coding Rules
-- All element getters use `$('~accessibilityId')` or the next-best locator per the selector priority in `SKILL.md`.
+- All element getters use `$('~accessibilityId')` or the next-best locator per the selector priority in `.agents/skills/mobile-test-automation.md`.
 - Every `it` block is `async`; every interaction uses `await`.
 - No `browser.pause()` — use `expect(el).toBeDisplayed()` or `waitForDisplayed` instead.
 - Use `for...of` (not `forEach`) when generating data-driven test cases dynamically.

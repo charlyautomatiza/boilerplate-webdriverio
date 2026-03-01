@@ -27,8 +27,10 @@ boilerplate-webdriverio/
 │   ├── copilot-instructions.md   # GitHub Copilot coding rules for this project
 │   └── workflows/
 │       └── android-emulator.yml  # CI pipeline (GitHub Actions)
+├── .agents/
+│   └── skills/
+│       └── mobile-test-automation.md  # Agnostic mobile automation skill (Anthropic format)
 ├── app/                          # Place APK / IPA here (git-ignored)
-├── SKILL.md                      # Technical stack & selector strategy reference
 ├── AGENTS.md                     # AI agent role definitions
 ├── test/
 │   ├── data/                     # External test data (JSON, CSV)
