@@ -28,9 +28,8 @@ boilerplate-webdriverio/
 │   └── workflows/
 │       └── android-emulator.yml  # CI pipeline (GitHub Actions)
 ├── app/                          # Place APK / IPA here (git-ignored)
-├── docs/
-│   ├── skill.md                  # Technical stack & selector strategy reference
-│   └── agents.md                 # AI agent role definitions
+├── SKILL.md                      # Technical stack & selector strategy reference
+├── AGENTS.md                     # AI agent role definitions
 ├── test/
 │   ├── data/                     # External test data (JSON, CSV)
 │   │   ├── loginData.json

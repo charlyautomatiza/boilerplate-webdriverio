@@ -77,7 +77,7 @@ test/
 | `expect(el).toBeDisplayed()` | Wait for an element to appear before interacting |
 | `expect(el).toHaveText(...)` | Wait for dynamic text to stabilise |
 | `el.waitForDisplayed({ timeout: 15000 })` | Explicit wait when `expect` matcher is insufficient |
-| `wdio-wait-for` library helpers | Complex compound conditions |
+| `browser.waitUntil(...)` with compound conditions | Complex cross-element or cross-state waits |
 | **`browser.pause()` — PROHIBITED** | Never; replace with one of the above |
 
 Default `waitforTimeout` is **10 000 ms** (configured in `wdio.conf.ts`).
