@@ -19,14 +19,83 @@
 
 This repository contains a starter boilerplate for working with [WebdriverIO](https://webdriver.io/), a test automation framework for web browsers and mobile applications.
 
-## Prerequisites
+## Framework Architecture
 
-Make sure you have Node.js installed. Download it from [nodejs.org](https://nodejs.org/).
+```
+boilerplate-webdriverio/
+├── .github/
+│   ├── copilot-instructions.md   # GitHub Copilot coding rules for this project
+│   └── workflows/
+│       └── android-emulator.yml  # CI pipeline (GitHub Actions)
+├── .agents/
+│   └── skills/
+│       └── mobile-test-automation.md  # Agnostic mobile automation skill (Anthropic format)
+├── app/                          # Place APK / IPA here (git-ignored)
+├── AGENTS.md                     # AI agent role definitions
+├── test/
+│   ├── data/                     # External test data (JSON, CSV)
+│   │   ├── loginData.json
+│   │   └── buttonsData.csv
+│   ├── pageobjects/              # Page Object Model — one file per screen
+│   │   ├── login.page.ts
+│   │   └── alert.page.ts
+│   ├── specs/                    # E2E test specs — one file per feature
+│   │   └── test.e2e.ts
+│   └── types/                    # Shared TypeScript interfaces
+│       └── data.ts
+├── wdio.conf.ts                  # WebdriverIO + Appium configuration
+├── tsconfig.json
+└── package.json
+```
 
-Recommended setup resources:
+**Key patterns used:**
+- **Page Object Model (POM)** — selectors and actions are encapsulated in `test/pageobjects/`.
+- **Data-Driven Testing (DDT)** — test data is externalised to JSON and CSV files.
+- **AAA (Arrange-Act-Assert)** — every test follows this structure for readability.
+- **Smart Waits** — `expect` matchers and `waitForDisplayed` replace all hard-coded sleeps.
 
-* Blog guide: [Appium v2 Android Setup Guide](https://bit.ly/appium-v2-android-setup)
-* YouTube video: [Appium v2 - WebdriverIO](https://bit.ly/3UEQbHt) (some CLI options may have changed since recording)
+## Getting Started — Mobile
+
+### Prerequisites
+
+#### All Platforms
+- **Node.js ≥ 20 LTS** — [nodejs.org](https://nodejs.org/)
+- **Java JDK ≥ 11** — required by Appium / UiAutomator2 / XCUITest
+  ```bash
+  java -version   # should print 11 or higher
+  ```
+
+#### Android
+- **Android Studio** (includes Android SDK) — [developer.android.com/studio](https://developer.android.com/studio)
+- Set environment variables:
+  ```bash
+  export ANDROID_HOME=$HOME/Library/Android/sdk          # macOS
+  export ANDROID_HOME=$HOME/Android/Sdk                  # Linux
+  export PATH=$PATH:$ANDROID_HOME/emulator
+  export PATH=$PATH:$ANDROID_HOME/platform-tools
+  ```
+- Create an AVD (Android Virtual Device) in Android Studio → **Virtual Device Manager**,
+  or use an existing emulator at `emulator-5554` (the default in `wdio.conf.ts`).
+- Verify the emulator is visible:
+  ```bash
+  adb devices   # should list emulator-5554
+  ```
+
+#### iOS (macOS only)
+- **Xcode** ≥ 14 — install from the Mac App Store
+- **Xcode Command Line Tools**:
+  ```bash
+  xcode-select --install
+  ```
+- **iOS Simulator** — open Xcode → **Window → Devices and Simulators** and create a simulator.
+- **Carthage** (required by WebDriverAgent):
+  ```bash
+  brew install carthage
+  ```
+
+#### Recommended Setup Guides
+- Blog: [Appium v2 Android Setup Guide](https://bit.ly/appium-v2-android-setup)
+- YouTube: [Appium v2 - WebdriverIO](https://bit.ly/3UEQbHt)
 
 ## Installation
 
@@ -52,15 +121,63 @@ npm install
 
 Download the latest release of the [WebdriverIO Native Demo (Guinea Pig) App](https://github.com/webdriverio/native-demo-app/releases) for Android (and iOS if needed).
 
-Create a folder named `app` at the project root and place the APK there to avoid path issues.
+Create a folder named `app` at the project root and place the APK / IPA there:
 
-After configuring your environment variables (ANDROID_HOME / Java etc.), run the tests:
+```
+app/
+├── android.wdio.native.app.v1.0.8.apk
+└── ios.wdio.native.app.v1.0.8.zip     # (optional, for iOS runs)
+```
+
+### Android Emulator (default)
 
 ```bash
+# Ensure the emulator is already booted, then:
 npm run wdio
 ```
 
-This command runs the E2E tests and produces Allure + JUnit reports.
+### Android Real Device
+
+1. Enable **USB Debugging** on the device.
+2. Connect via USB and confirm:
+   ```bash
+   adb devices   # device should appear as "device", not "unauthorized"
+   ```
+3. Update `wdio.conf.ts` → `'appium:deviceName'` to match your device serial.
+4. Run:
+   ```bash
+   npm run wdio
+   ```
+
+### iOS Simulator (macOS only)
+
+1. Open `wdio.conf.ts` and add/switch to the iOS capability block:
+   ```typescript
+   {
+       platformName: 'iOS',
+       'appium:deviceName': 'iPhone 15',
+       'appium:platformVersion': '17.0',
+       'appium:automationName': 'XCUITest',
+       'appium:bundleId': 'org.wdio.native.app',
+       'appium:app': __dirname + '/app/ios.wdio.native.app.v1.0.8.zip',
+   }
+   ```
+2. Install the XCUITest driver (first time only):
+   ```bash
+   npx appium driver install xcuitest
+   ```
+3. Boot the simulator from Xcode or:
+   ```bash
+   xcrun simctl boot "iPhone 15"
+   ```
+4. Run:
+   ```bash
+   npm run wdio
+   ```
+
+### Multiple Environments / Parallel Execution
+
+To run against multiple devices in parallel, define more than one capability in the `capabilities` array in `wdio.conf.ts` and adjust `maxInstances`.
 
 ## Open the Combined Allure Report
 
