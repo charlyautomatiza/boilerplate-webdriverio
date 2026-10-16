@@ -50,9 +50,14 @@ npm install
 
 ## Running Tests
 
-Download the latest release of the [WebdriverIO Native Demo (Guinea Pig) App](https://github.com/webdriverio/native-demo-app/releases) for Android (and iOS if needed).
+Download the [WebdriverIO Native Demo (Guinea Pig) App](https://github.com/webdriverio/native-demo-app/releases/tag/v1.0.8) for Android (and iOS if needed). The project is pinned to **v1.0.8** (`android.wdio.native.app.v1.0.8.apk`).
 
-Create a folder named `app` at the project root and place the APK there to avoid path issues.
+Create a folder named `app` at the project root and place the APK there, keeping its original file name, to avoid path issues.
+
+If you use a different release, update the file name in the two places that reference it:
+
+* `wdio.conf.ts` - the `appium:app` capability
+* `.github/workflows/android-emulator.yml` - the APK download step
 
 After configuring your environment variables (ANDROID_HOME / Java etc.), run the tests:
 
