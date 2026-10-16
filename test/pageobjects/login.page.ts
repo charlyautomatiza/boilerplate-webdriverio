@@ -18,7 +18,13 @@ class LoginPage {
     }
 
     public get btnSubmit () {
-        return $('~button-LOGIN');
+        // The login form lives in a ScrollView. On shorter screens the button
+        // sits outside the viewport, and UiAutomator2 does not expose
+        // off-screen elements, so scroll it into view first.
+        return $(
+            'android=new UiScrollable(new UiSelector().scrollable(true))' +
+            '.scrollIntoView(new UiSelector().description("button-LOGIN"))'
+        );
     }
 
     /**
